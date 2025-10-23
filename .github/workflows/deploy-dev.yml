@@ -24,40 +24,51 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
+      - name: Debug SSH
+        run: |
+          ssh -vvv -o StrictHostKeyChecking=no \
+            -p "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_ed25519 \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "echo OK && whoami && pwd && ls -la /www/dev.emulator-tg.ru | head"
+
       - name: Pack dist
         run: tar -C dist -czf dist.tgz .
 
       - name: Upload archive to REG.RU
         run: |
-          scp -P ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519 dist.tgz \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/www/dev.emulator-tg.ru/
+          scp -P "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_ed25519 dist.tgz \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/www/dev.emulator-tg.ru/"
 
       - name: Unpack and deploy on server
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519 \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<'SH'
+          ssh -p "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_ed25519 \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" <<'SH'
           set -e
           cd /www/dev.emulator-tg.ru
           # сохраняем .htaccess, чистим остальное
-          find . -mindepth 1 -maxdepth 1 ! -name '.' ! -name '..' ! -name '.htaccess' -exec rm -rf {} +
+          find . -mindepth 1 -maxdepth 1 ! -name '.htaccess' -exec rm -rf {} +
           tar -xzf dist.tgz
           rm -f dist.tgz
           SH
 
-      # ✅ Уведомление об успехе
       - name: Telegram notify success
         if: ${{ success() }}
         run: |
           COMMIT="${GITHUB_SHA::7}"
-          MSG="✅ Deploy OK\nrepo: ${GITHUB_REPOSITORY}\nbranch: ${GITHUB_REF_NAME}\ncommit: ${COMMIT}\nauthor: ${GITHUB_ACTOR}\nhost: ${{ secrets.SSH_HOST }}\npath: /www/dev.emulator-tg.ru/\nrun: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          MSG="$(printf "✅ Deploy OK\nrepo: %s\nbranch: %s\ncommit: %s\nauthor: %s\nhost: %s\npath: /www/dev.emulator-tg.ru/\nrun: %s/%s/actions/runs/%s" \
+            "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$COMMIT" "$GITHUB_ACTOR" "${{ secrets.SSH_HOST }}" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
           curl -sS -X POST "https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TG_CHAT_ID }}" -d text="$MSG" -d parse_mode="HTML"
+            --data-urlencode "chat_id=${{ secrets.TG_CHAT_ID }}" \
+            --data-urlencode "text=$MSG" \
+            --data "parse_mode=HTML"
 
-      # ❌ Уведомление о падении
       - name: Telegram notify failure
         if: ${{ failure() }}
         run: |
           COMMIT="${GITHUB_SHA::7}"
-          MSG="❌ Deploy FAILED\nrepo: ${GITHUB_REPOSITORY}\nbranch: ${GITHUB_REF_NAME}\ncommit: ${COMMIT}\nauthor: ${GITHUB_ACTOR}\nrun: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          MSG="$(printf "❌ Deploy FAILED\nrepo: %s\nbranch: %s\ncommit: %s\nauthor: %s\nrun: %s/%s/actions/runs/%s" \
+            "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$COMMIT" "$GITHUB_ACTOR" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
           curl -sS -X POST "https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TG_CHAT_ID }}" -d text="$MSG" -d parse_mode="HTML"
+            --data-urlencode "chat_id=${{ secrets.TG_CHAT_ID }}" \
+            --data-urlencode "text=$MSG" \
+            --data "parse_mode=HTML"
