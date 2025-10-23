@@ -45,7 +45,7 @@ jobs:
             set ftp:ssl-allow yes; \
             set ftp:ssl-force yes; \
             set ftp:ssl-protect-data yes; \
-            set ssl:verify-certificate yes; \
+            set ssl:verify-certificate no; \
             debug 9; \
             cls -l /www/dev.emulator-tg.ru; \
             bye" \
@@ -69,7 +69,7 @@ jobs:
             set ftp:ssl-allow yes; \
             set ftp:ssl-force yes; \
             set ftp:ssl-protect-data yes; \
-            set ssl:verify-certificate yes; \
+            set ssl:verify-certificate no; \
             mirror -R --delete --verbose dist /www/dev.emulator-tg.ru; \
             bye" \
             -u "${{ secrets.FTP_USER }},${{ secrets.FTP_PASS }}" ftp://"${HOST}":"${PORT}"
@@ -95,3 +95,4 @@ jobs:
             --data-urlencode "chat_id=${{ secrets.TG_CHAT_ID }}" \
             --data-urlencode "text=$MSG" \
             --data "parse_mode=HTML"
+
