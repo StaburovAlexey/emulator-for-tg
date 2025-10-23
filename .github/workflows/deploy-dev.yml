@@ -16,7 +16,7 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build
+      - run: npm run build:dev
 
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp

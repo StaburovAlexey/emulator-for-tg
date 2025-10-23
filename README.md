@@ -165,3 +165,14 @@ ssh regru
 
 Файл workflow
 - Конфигурация: `.github/workflows/deploy-dev.yml`.
+
+## ⚙️ ENV и сборки
+
+- Файлы окружений (подхватываются Vite при сборке):
+  - `.env.development` — для dev‑сборки
+  - `.env.production` — для prod‑сборки
+  - Видимы в клиенте только переменные с префиксом `VITE_`.
+- Скрипты:
+  - `npm run build:dev` — сборка с режимом `development` (использует `.env.development`)
+  - `npm run build:prod` — сборка с режимом `production` (использует `.env.production`)
+- Автодеплой из ветки `dev` собирает `build:dev` и выкладывает `dist` на сервер.
