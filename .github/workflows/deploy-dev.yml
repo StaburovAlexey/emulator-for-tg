@@ -18,62 +18,68 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Prepare SSH key and known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          # безопасно: заранее доверяем ключу сервера
-          ssh-keyscan -T 5 -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts || true
-          chmod 644 ~/.ssh/known_hosts
-          echo "Known hosts:"
-          cat ~/.ssh/known_hosts || true
-
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      - name: Connectivity check (DNS + TCP)
+      # === FTPS (Explicit TLS на порту 21) ===
+      - name: Connectivity check (DNS + TCP:21)
         run: |
-          echo "Host: ${{ secrets.SSH_HOST }}  Port: ${{ secrets.SSH_PORT }}"
+          HOST="${{ secrets.FTP_HOST }}"; PORT="${{ secrets.FTP_PORT }}"; [ -z "$PORT" ] && PORT=21
+          echo "Host: ${HOST}  Port: ${PORT}"
           echo '— DNS resolution:'
-          getent hosts "${{ secrets.SSH_HOST }}" || nslookup "${{ secrets.SSH_HOST }}" || true
+          getent hosts "${HOST}" || nslookup "${HOST}" || true
           echo '— TCP port probe:'
-          (timeout 7 bash -lc 'exec 3<>/dev/tcp/${{ secrets.SSH_HOST }}/${{ secrets.SSH_PORT }}') && echo 'TCP reachable' || (echo 'TCP unreachable (blocked/closed or host down)'; exit 1)
+          (timeout 7 bash -lc "exec 3<>/dev/tcp/${HOST}/${PORT}") && echo 'TCP reachable' || (echo 'TCP unreachable (blocked/closed or host down)'; exit 1)
+          echo '— TLS handshake (FTP STARTTLS):'
+          openssl s_client -starttls ftp -connect "${HOST}:${PORT}" -brief -servername "${HOST}" </dev/null || true
 
-      - name: Debug SSH handshake
+      - name: Debug FTPS list (explicit TLS 21)
         run: |
-          ssh -vvv -4 \
-            -o ConnectTimeout=10 \
-            -o BatchMode=yes \
-            -o StrictHostKeyChecking=yes \
-            -o UserKnownHostsFile=~/.ssh/known_hosts \
-            -o IdentitiesOnly=yes \
-            -i ~/.ssh/id_ed25519 -p "${{ secrets.SSH_PORT }}" \
-            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" true
+          HOST="${{ secrets.FTP_HOST }}"; PORT="${{ secrets.FTP_PORT }}"; [ -z "$PORT" ] && PORT=21
+          lftp -e "\
+            set net:max-retries 1; \
+            set net:timeout 30; \
+            set net:reconnect-interval-base 5; \
+            set dns:order inet; \
+            set ftp:passive-mode on; \
+            set ftp:ssl-allow yes; \
+            set ftp:ssl-force yes; \
+            set ftp:ssl-protect-data yes; \
+            set ssl:verify-certificate yes; \
+            debug 9; \
+            cls -l /www/dev.emulator-tg.ru; \
+            bye" \
+            -u "${{ secrets.FTP_USER }},${{ secrets.FTP_PASS }}" ftp://"${HOST}":"${PORT}"
 
-      # Отладка SFTP (безопасный режим, с known_hosts)
-      - name: Debug SFTP list (strict)
-        run: |
-          lftp -e "set net:max-retries 1; set net:timeout 15; set net:reconnect-interval-base 5; set dns:order inet; set sftp:connect-program 'ssh -4 -a -x -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o IdentitiesOnly=yes -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519'; debug 9; cls -l /www/dev.emulator-tg.ru; bye" \
-            -u "${{ secrets.SSH_USER }}", sftp://"${{ secrets.SSH_HOST }}"
-
-      # Если шаг выше упадёт из-за ключа, включите fallback-шаг ниже и удалите strict-шаг
-      # - name: Debug SFTP list (fallback, no hostkey check)
+      # Если у провайдера implicit FTPS (порт 990), можно протестировать так:
+      # - name: Debug FTPS implicit (990)
       #   run: |
-      #     lftp -e "set net:max-retries 1; set sftp:connect-program 'ssh -a -x -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519'; cls -l /www/dev.emulator-tg.ru; bye" \
-      #       -u "${{ secrets.SSH_USER }}", sftp://"${{ secrets.SSH_HOST }}"
+      #     lftp -e "set net:max-retries 1; set net:timeout 30; set ftp:passive-mode on; set dns:order inet; debug 9; cls -l /www/dev.emulator-tg.ru; bye" \
+      #       -u "${{ secrets.FTP_USER }},${{ secrets.FTP_PASS }}" ftps://"${{ secrets.FTP_HOST }}":990
 
-      - name: Deploy via SFTP mirror
+      - name: Deploy via FTPS mirror
         run: |
-          lftp -e "set net:max-retries 1; set net:timeout 30; set net:reconnect-interval-base 5; set dns:order inet; set sftp:connect-program 'ssh -4 -a -x -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o IdentitiesOnly=yes -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519'; mirror -R --delete --verbose dist /www/dev.emulator-tg.ru; bye" \
-            -u "${{ secrets.SSH_USER }}", sftp://"${{ secrets.SSH_HOST }}"
+          HOST="${{ secrets.FTP_HOST }}"; PORT="${{ secrets.FTP_PORT }}"; [ -z "$PORT" ] && PORT=21
+          lftp -e "\
+            set net:max-retries 1; \
+            set net:timeout 60; \
+            set net:reconnect-interval-base 5; \
+            set dns:order inet; \
+            set ftp:passive-mode on; \
+            set ftp:ssl-allow yes; \
+            set ftp:ssl-force yes; \
+            set ftp:ssl-protect-data yes; \
+            set ssl:verify-certificate yes; \
+            mirror -R --delete --verbose dist /www/dev.emulator-tg.ru; \
+            bye" \
+            -u "${{ secrets.FTP_USER }},${{ secrets.FTP_PASS }}" ftp://"${HOST}":"${PORT}"
 
       - name: Telegram notify success
         if: ${{ success() }}
         run: |
           COMMIT="${GITHUB_SHA::7}"
           MSG="$(printf "✅ Deploy OK\nrepo: %s\nbranch: %s\ncommit: %s\nauthor: %s\nhost: %s\npath: /www/dev.emulator-tg.ru/\nrun: %s/%s/actions/runs/%s" \
-            "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$COMMIT" "$GITHUB_ACTOR" "${{ secrets.SSH_HOST }}" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
+            "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$COMMIT" "$GITHUB_ACTOR" "${{ secrets.FTP_HOST }}" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
           curl -sS -X POST "https://api.telegram.org/bot${{ secrets.TG_BOT_TOKEN }}/sendMessage" \
             --data-urlencode "chat_id=${{ secrets.TG_CHAT_ID }}" \
             --data-urlencode "text=$MSG" \
