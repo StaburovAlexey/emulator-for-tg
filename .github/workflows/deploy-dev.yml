@@ -23,7 +23,7 @@ jobs:
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           # безопасно: заранее доверяем ключу сервера
-          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -T 5 -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts || true
           chmod 644 ~/.ssh/known_hosts
           echo "Known hosts:"
           cat ~/.ssh/known_hosts || true
@@ -31,10 +31,29 @@ jobs:
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
+      - name: Connectivity check (DNS + TCP)
+        run: |
+          echo "Host: ${{ secrets.SSH_HOST }}  Port: ${{ secrets.SSH_PORT }}"
+          echo '— DNS resolution:'
+          getent hosts "${{ secrets.SSH_HOST }}" || nslookup "${{ secrets.SSH_HOST }}" || true
+          echo '— TCP port probe:'
+          (timeout 7 bash -lc 'exec 3<>/dev/tcp/${{ secrets.SSH_HOST }}/${{ secrets.SSH_PORT }}') && echo 'TCP reachable' || (echo 'TCP unreachable (blocked/closed or host down)'; exit 1)
+
+      - name: Debug SSH handshake
+        run: |
+          ssh -vvv -4 \
+            -o ConnectTimeout=10 \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -o IdentitiesOnly=yes \
+            -i ~/.ssh/id_ed25519 -p "${{ secrets.SSH_PORT }}" \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" true
+
       # Отладка SFTP (безопасный режим, с known_hosts)
       - name: Debug SFTP list (strict)
         run: |
-          lftp -e "set net:max-retries 1; set sftp:connect-program 'ssh -a -x -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519'; cls -l /www/dev.emulator-tg.ru; bye" \
+          lftp -e "set net:max-retries 1; set net:timeout 15; set net:reconnect-interval-base 5; set dns:order inet; set sftp:connect-program 'ssh -4 -a -x -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o IdentitiesOnly=yes -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519'; debug 9; cls -l /www/dev.emulator-tg.ru; bye" \
             -u "${{ secrets.SSH_USER }}", sftp://"${{ secrets.SSH_HOST }}"
 
       # Если шаг выше упадёт из-за ключа, включите fallback-шаг ниже и удалите strict-шаг
@@ -45,7 +64,7 @@ jobs:
 
       - name: Deploy via SFTP mirror
         run: |
-          lftp -e "set net:max-retries 1; set sftp:connect-program 'ssh -a -x -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519'; mirror -R --delete --verbose dist /www/dev.emulator-tg.ru; bye" \
+          lftp -e "set net:max-retries 1; set net:timeout 30; set net:reconnect-interval-base 5; set dns:order inet; set sftp:connect-program 'ssh -4 -a -x -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/known_hosts -o IdentitiesOnly=yes -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519'; mirror -R --delete --verbose dist /www/dev.emulator-tg.ru; bye" \
             -u "${{ secrets.SSH_USER }}", sftp://"${{ secrets.SSH_HOST }}"
 
       - name: Telegram notify success
