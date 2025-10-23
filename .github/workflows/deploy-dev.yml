@@ -17,40 +17,28 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      - name: Prepare SSH
+      - name: Prepare SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Debug SSH
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      # Отладка SFTP: показать список в целевой папке
+      - name: Debug SFTP list
         run: |
-          ssh -vvv -o StrictHostKeyChecking=no \
-            -p "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_ed25519 \
-            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
-            "echo OK && whoami && pwd && ls -la /www/dev.emulator-tg.ru | head"
+          lftp -e "set net:max-retries 1; set sftp:connect-program 'ssh -a -x -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519'; cls -l /www/dev.emulator-tg.ru; bye" \
+            -u "${{ secrets.SSH_USER }}", sftp://"${{ secrets.SSH_HOST }}"
 
-      - name: Pack dist
-        run: tar -C dist -czf dist.tgz .
-
-      - name: Upload archive to REG.RU
+      # Деплой: зеркалим dist -> удалённую папку, удаляем лишнее
+      - name: Deploy via SFTP mirror
         run: |
-          scp -P "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_ed25519 dist.tgz \
-            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/www/dev.emulator-tg.ru/"
+          lftp -e "set net:max-retries 1; set sftp:connect-program 'ssh -a -x -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_ed25519'; mirror -R --delete --verbose dist /www/dev.emulator-tg.ru; bye" \
+            -u "${{ secrets.SSH_USER }}", sftp://"${{ secrets.SSH_HOST }}"
 
-      - name: Unpack and deploy on server
-        run: |
-          ssh -p "${{ secrets.SSH_PORT }}" -i ~/.ssh/id_ed25519 \
-            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" <<'SH'
-          set -e
-          cd /www/dev.emulator-tg.ru
-          # сохраняем .htaccess, чистим остальное
-          find . -mindepth 1 -maxdepth 1 ! -name '.htaccess' -exec rm -rf {} +
-          tar -xzf dist.tgz
-          rm -f dist.tgz
-          SH
-
+      # Telegram: успех
       - name: Telegram notify success
         if: ${{ success() }}
         run: |
@@ -62,6 +50,7 @@ jobs:
             --data-urlencode "text=$MSG" \
             --data "parse_mode=HTML"
 
+      # Telegram: падение
       - name: Telegram notify failure
         if: ${{ failure() }}
         run: |
