@@ -21,7 +21,6 @@ jobs:
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
 
-      # === FTPS (Explicit TLS на порту 21) ===
       - name: Connectivity check (DNS + TCP:21)
         run: |
           HOST="${{ secrets.FTP_HOST }}"; PORT="${{ secrets.FTP_PORT }}"; [ -z "$PORT" ] && PORT=21
@@ -54,11 +53,6 @@ jobs:
             cls -l /www/dev.emulator-tg.ru; \
             bye"
 
-      # Если у провайдера implicit FTPS (порт 990), можно протестировать так:
-      # - name: Debug FTPS implicit (990)
-      #   run: |
-      #     lftp -e "set net:max-retries 1; set net:timeout 30; set ftp:passive-mode on; set dns:order inet; debug 9; cls -l /www/dev.emulator-tg.ru; bye" \
-      #       -u "${{ secrets.FTP_USER }},${{ secrets.FTP_PASS }}" ftps://"${{ secrets.FTP_HOST }}":990
 
       - name: Deploy via FTPS mirror
         run: |

@@ -136,3 +136,32 @@ ssh regru
   ```
 
 - В Windows в `IdentityFile` в `~/.ssh/config` используйте прямые слэши (`/`) и путь без пробелов, либо берите путь в кавычки при использовании в командной строке.
+
+## 🚀 CI/CD: деплой на Regru по FTPS
+
+Код автоматически деплоится в каталог `/www/your_name` по FTPS (порт 21, explicit TLS) через GitHub Actions.
+
+Что настроить
+- Секреты в GitHub (Settings → Secrets and variables → Actions):
+  - `FTP_HOST` — адрес FTP (например, `server277.hosting.reg.ru`).
+  - `FTP_USER` — логин FTP.
+  - `FTP_PASS` — пароль FTP.
+  - `FTP_PORT` — опционально, по умолчанию `21`.
+  - `TG_BOT_TOKEN`, `TG_CHAT_ID` — для Telegram‑уведомлений.
+- Путь деплоя в workflow: по умолчанию `/www/your_name`.
+
+Как запускать
+- Автоматически при пуше в ветку `dev`.
+- Вручную: вкладка Actions → `deploy-dev` → Run workflow.
+
+Как работает деплой
+- Сборка: `npm ci && npm run build` (Vite), результат — папка `dist`.
+- Заливка: `lftp mirror -R --delete` — серверная папка становится точной копией `dist`.
+- Важно: флаг `--delete` удалит файлы на сервере, которых нет в `dist`.
+
+Замечания и безопасность
+- FTPS использует TLS, но проверка сертификата отключена в workflow (`set ssl:verify-certificate no`) из‑за самоподписанных сертификатов на shared‑хостинге. Для строгой проверки включите `yes` в файле `.github/workflows/deploy-dev.yml`.
+- Пассивный режим включён, EPSV отключён для совместимости с хостингом.
+
+Файл workflow
+- Конфигурация: `.github/workflows/deploy-dev.yml`.
