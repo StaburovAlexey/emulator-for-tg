@@ -155,7 +155,7 @@ ssh regru
 - Вручную: вкладка Actions → `deploy-dev` → Run workflow.
 
 Как работает деплой
-- Сборка: `npm ci && npm run build` (Vite), результат — папка `dist`.
+- Сборка: `npm ci && npm run build:dev` (Vite), результат — папка `dist`.
 - Заливка: `lftp mirror -R --delete` — серверная папка становится точной копией `dist`.
 - Важно: флаг `--delete` удалит файлы на сервере, которых нет в `dist`.
 
