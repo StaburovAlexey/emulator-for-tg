@@ -4,6 +4,78 @@ This template should help get you started developing with Vue 3 and TypeScript i
 
 Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
 
+## Тестирование и отладка Telegram Mini App
+
+Мини‑приложение Telegram — обычный сайт, который открывается внутри клиента Telegram. Для локальной разработки нужна публичная HTTPS‑ссылка на ваш `localhost`. Самый удобный способ — Dev Tunnels в VS Code (альтернатива — ngrok).
+
+### Быстрый чек‑лист
+
+1) Запустить локально: `npm run dev` (по умолчанию порт `5173`).
+
+2) Пробросить порт 5173:
+- VS Code → Terminal → вкладка `Ports` → `Forward a Port` → `5173`.
+- Скопировать `Remote Address` вида `https://<hash>-5173.<region>.devtunnels.ms`.
+
+3) Приватность порта:
+- `Port Visibility` → `Private` (только вы) или `Public` (доступно всем).
+
+4) Привязать ссылку к боту:
+- BotFather → `Bot Settings` → `Menu Button` → `Web App` → вставить HTTPS‑ссылку туннеля.
+
+5) Отладка:
+- Telegram Web: `https://web.telegram.org/a/` (доступны DevTools).
+- Мобильные клиенты: используйте оверлей логов в UI или `Telegram.WebApp.showAlert/showPopup` для быстрых проверок.
+
+### Dev Tunnels (рекомендуется)
+
+- Запуск: создайте перенаправление для `5173` как указано выше и используйте выданную HTTPS‑ссылку.
+- Постоянная ссылка: `Ctrl+Shift+P` → `Dev Tunnels: Create Tunnel` → отметьте Persistent, затем `Share Local Port (5173)`.
+- HMR/WS: при проблемах добавьте в `vite.config.ts` (при необходимости):
+
+  ```ts
+  import { defineConfig } from 'vite'
+  export default defineConfig({
+    server: {
+      host: true,
+      hmr: { clientPort: 443 },
+    },
+  })
+  ```
+
+### Доступ (Public/Private) и авторизация
+
+- Если при открытии туннеля запрашивается вход через GitHub/Microsoft, туннель создан как `Private`.
+- Telegram WebApp не умеет проходить такую авторизацию. Происходит редирект на github.com, который запрещён во фреймах (CSP: `frame-ancestors 'none'`), из‑за чего вы видите ошибку «Refused to frame 'https://github.com/' …».
+- Решение:
+  - Вкладка VS Code `Ports` → правый клик по порту → `Port Visibility` → `Public`.
+  - Для Persistent‑туннеля: `Dev Tunnels: Manage Access` → разрешите Anonymous/Public.
+  - Проверьте в приватном окне браузера: ссылка должна открываться без логина.
+  - Обновите ссылку у бота в BotFather после смены доступа.
+
+### Ngrok (альтернатива)
+
+- Установка и запуск: `ngrok http 5173` → получите ссылку `https://*.ngrok.app`.
+- Постоянный домен: зарезервируйте домен в кабинете ngrok и запускайте `ngrok http --domain=myapp.ngrok.app 5173`.
+- Ограничение доступа: `--basic-auth user:pass` или политики IP.
+
+### Привязка в Telegram
+
+- Кнопка Web App: BotFather → `Menu Button` → `Web App` → вставьте HTTPS‑ссылку.
+- Быстрый диплинк: `https://t.me/<bot_username>?startapp=dev`.
+- Через сообщение: используйте клавиатуру с `web_app: { url: "<ваш HTTPS>" }` на стороне бота.
+
+### Частые проблемы и решения
+
+- HMR/WebSocket не коннектится: задайте `server.hmr.clientPort = 443` и оставьте запуск `vite --host`.
+- CORS к бэкенду: разрешите домены туннеля (`*.devtunnels.ms`/`*.ngrok.app`).
+- Mixed Content: используйте только HTTPS‑ссылки в мини‑приложении.
+- Меняющийся домен: используйте Persistent Tunnel (Dev Tunnels) или Reserved Domain (ngrok).
+
+### Полезные советы
+
+- Зафиксируйте порт при разработке: запускать `vite` с `--strictPort` (например, обновить скрипт `dev` до `vite --host --strictPort`).
+- Для мобилок добавьте временную панель логов или отправку логов на тестовый эндпоинт.
+
 ## 🔐 Настройка SSH-доступа к серверу (Regru)
 
 ### 1. Генерация SSH-ключа
