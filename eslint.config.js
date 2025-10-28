@@ -40,6 +40,7 @@ export default [
     },
     rules: {
       'vue/multi-word-component-names': 'off',
+      'vue/no-undef-components': ['error', { ignorePatterns: ['^i-'] }],
     },
   },
 
