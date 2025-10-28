@@ -1,0 +1,15 @@
+:root {
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-text-color: #222;
+  --tg-theme-button-color: #2aabee;
+  --tg-theme-button-text-color: #fff;
+}
+#app {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--tg-theme-secondary-bg-color);
+
+}

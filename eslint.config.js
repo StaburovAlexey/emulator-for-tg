@@ -30,6 +30,7 @@ export default [
     files: ['**/*.vue'],
     languageOptions: {
       parser: vueParser,
+      settings: { vue: { version: '3.0.0' } },
       parserOptions: {
         parser: tseslint.parser,
         ecmaVersion: 'latest',
