@@ -1,8 +1,14 @@
 <script setup lang="ts">
+import CustomButton from '@/components/ui/button/CustomButton.vue';
+
 </script>
 <template>
   <div class="footer">
     <div class="circle"></div>
+    <CustomButton circle color="transparent"><i-weui:home-filled class="icon"></i-weui:home-filled></CustomButton>
+    <CustomButton circle color="transparent"><i-weui:home-filled class="icon"></i-weui:home-filled></CustomButton>
+    <CustomButton circle color="transparent"><i-weui:setting-outlined class="icon"></i-weui:setting-outlined></CustomButton>
+    <CustomButton circle color="transparent"><i-weui:setting-filled class="icon"></i-weui:setting-filled></CustomButton>
   </div>
 </template>
 
@@ -19,11 +25,11 @@
   );
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-around;
   filter: drop-shadow(0px 0px 2px rgba(0, 0, 0, 0.5));
 }
 
-.circle {
+.footer .circle {
   position: absolute;
   top: 0;
   right: 50%;
@@ -32,5 +38,9 @@
   height: 45px;
   background-color: var(--tg-theme-bg-color);
   border-radius: 50%;
+}
+.footer .icon {
+  width: 30px;
+  height: 30px;
 }
 </style>

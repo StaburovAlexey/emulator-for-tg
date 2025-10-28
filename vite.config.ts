@@ -7,7 +7,7 @@ import IconsResolver from 'unplugin-icons/resolver'
 export default defineConfig({
   plugins: [
     vue(),
-    Components({     
+    Components({
       dts: 'src/icons.d.ts',
       dirs: [],
       resolvers: [
@@ -18,6 +18,10 @@ export default defineConfig({
     }),
     Icons({
       autoInstall: true,
+      iconCustomizer(collection, icon, props) {
+        props.width = '20'
+        props.height = '20'
+      },
     }),
   ],
   resolve: {
