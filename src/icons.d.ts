@@ -11,8 +11,10 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    'IWeui:folderFilled': typeof import('~icons/weui/folder-filled')['default']
     'IWeui:homeFilled': typeof import('~icons/weui/home-filled')['default']
     'IWeui:settingFilled': typeof import('~icons/weui/setting-filled')['default']
     'IWeui:settingOutlined': typeof import('~icons/weui/setting-outlined')['default']
+    'IWeui:shareFilled': typeof import('~icons/weui/share-filled')['default']
   }
 }

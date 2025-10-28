@@ -1,19 +1,28 @@
 <script setup lang="ts">
-import CustomButton from '@/components/ui/button/CustomButton.vue';
-
+import CustomButton from '@/components/ui/button/CustomButton.vue'
 </script>
 <template>
   <div class="footer">
     <div class="circle"></div>
-    <CustomButton circle color="transparent"><i-weui:home-filled class="icon"></i-weui:home-filled></CustomButton>
-    <CustomButton circle color="transparent"><i-weui:home-filled class="icon"></i-weui:home-filled></CustomButton>
-    <CustomButton circle color="transparent"><i-weui:setting-outlined class="icon"></i-weui:setting-outlined></CustomButton>
-    <CustomButton circle color="transparent"><i-weui:setting-filled class="icon"></i-weui:setting-filled></CustomButton>
+    <CustomButton circle color="transparent" text-color="var(--tg-theme-button-color)"
+      ><i-weui:home-filled class="icon"></i-weui:home-filled
+    ></CustomButton>
+    <CustomButton circle color="transparent" text-color="var(--tg-theme-button-color)"
+      ><i-weui:folder-filled class="icon"></i-weui:folder-filled
+    ></CustomButton>
+    <CustomButton circle color="transparent" text-color="var(--tg-theme-button-color)"
+      ><i-weui:share-filled class="icon"></i-weui:share-filled
+    ></CustomButton>
+    <CustomButton circle color="transparent" text-color="var(--tg-theme-button-color)"
+      ><i-weui:setting-filled class="icon"></i-weui:setting-filled
+    ></CustomButton>
   </div>
 </template>
 
 <style scoped>
 .footer {
+  padding: 0 10px;
+  box-sizing: border-box;
   position: relative;
   width: 100%;
   flex: 0 0 auto;
@@ -25,10 +34,12 @@ import CustomButton from '@/components/ui/button/CustomButton.vue';
   );
   display: flex;
   align-items: center;
-  justify-content: space-around;
+  justify-content: space-between;
   filter: drop-shadow(0px 0px 2px rgba(0, 0, 0, 0.5));
 }
-
+.footer button {
+  height: 70%;
+}
 .footer .circle {
   position: absolute;
   top: 0;
@@ -40,7 +51,7 @@ import CustomButton from '@/components/ui/button/CustomButton.vue';
   border-radius: 50%;
 }
 .footer .icon {
-  width: 30px;
-  height: 30px;
+  width: 100%;
+  height: 100%;
 }
 </style>

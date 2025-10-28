@@ -4,7 +4,7 @@ import CustomButton from '../ui/button/CustomButton.vue';
 </script>
 <template>
   <div class="main">
-    <CustomButton ><i-weui:setting-outlined ></i-weui:setting-outlined></CustomButton>
+    <CustomButton >рппдпоожлпол</CustomButton>
   </div>
 </template>
 

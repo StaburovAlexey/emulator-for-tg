@@ -4,6 +4,12 @@
   --tg-theme-button-color: #2aabee;
   --tg-theme-button-text-color: #fff;
 }
+:focus:not(:focus-visible) {
+  outline: none;
+}
+* {
+  -webkit-tap-highlight-color: transparent;
+}
 #app {
   width: 100%;
   min-height: 100vh;
@@ -11,5 +17,4 @@
   display: flex;
   flex-direction: column;
   background-color: var(--tg-theme-secondary-bg-color);
-
 }

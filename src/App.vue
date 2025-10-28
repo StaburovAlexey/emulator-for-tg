@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import FooterComponent from '@/components/footer/FooterComponent.vue';
 import MainComponent from '@/components/main/MainComponent.vue';
+window.addEventListener('touchstart', () => {}, { passive: true });
 window.addEventListener('DOMContentLoaded', () => {
   const tg = window.Telegram?.WebApp;
   if (!tg) return;

@@ -6,7 +6,7 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  size:{
+  size: {
     type: String,
     default: 'medium',
   },
@@ -22,11 +22,16 @@ const props = defineProps({
 </script>
 
 <template>
-  <button class="my-button" :style="{
-    'background-color': props.color,
-    'color': props.textColor,
-    'border-radius': props.circle ? '50%' : '5px',
-  }"><slot></slot></button>
+  <button
+    class="my-button"
+    :style="{
+      'background-color': props.color,
+      color: props.textColor,
+      'border-radius': props.circle ? '50%' : '5px',
+    }"
+  >
+    <slot></slot>
+  </button>
 </template>
 
 <style scoped>
@@ -42,4 +47,7 @@ const props = defineProps({
   justify-content: center;
 }
 
+.my-button:active {
+  opacity: 0.8;
+}
 </style>
