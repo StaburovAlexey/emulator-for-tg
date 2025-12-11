@@ -50,7 +50,7 @@ jobs:
             set ftp:prefer-epsv false; \
             debug 9; \
             user \"$FTP_USER\" \"$FTP_PASS\"; \
-            cls -l /www/dev.emulator-tg.ru; \
+            cls -l /var/www/dev.app.emulator-tg.ru; \
             bye"
 
 
